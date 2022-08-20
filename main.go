@@ -31,14 +31,25 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 
 	resp := new(TargetRequest)
 	_ = json.Unmarshal(body, resp)
+	fmt.Println("Response Target: ", resp.Target)
 
 	switch resp.Target {
 	case "Book":
 		resp := new(BookRequest)
 		_ = json.Unmarshal(body, resp)
 
-		err, output := RunScript("alice", "create-book",
+		err, output := RunScript(resp.Account, "create-book",
 			resp.BookId, resp.Title, resp.Synopsis, resp.CreatedAt)
+		if err != nil {
+			fmt.Println("error: ", err)
+		}
+		rw.Write([]byte(output))
+	case "Story":
+		resp := new(StoryRequest)
+		_ = json.Unmarshal(body, resp)
+
+		err, output := RunScript("alice", "create-story",
+			resp.StoryId, resp.BookId, resp.PrevStoryId, resp.Height, resp.Title, resp.Body, resp.CreatedAt)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -60,17 +71,26 @@ type BookRequest struct {
 	Account   string `json:"accountName"`
 }
 
+type StoryRequest struct {
+	StoryId     string `json:"storyId"`
+	BookId      string `json:"bookId"`
+	PrevStoryId string `json:"prevStoryId"`
+	Height      string `json:"height"`
+	Title       string `json:"title"`
+	Body        string `json:"body"`
+	CreatedAt   string `json:"createdAt"`
+	Account     string `json:"accountName"`
+}
+
 func RunScript(from string, message string, arguments ...string) (error, string) {
 	args := makeArgs(arguments)
 	script := []byte("storyblockd tx storyblock " + message + args + " --from " + from + " -y")
 	fileName := "./run_" + StringWithCharset(10) + ".sh"
 	if err := ioutil.WriteFile(fileName, script, 0644); err != nil {
-		_ = os.Remove(fileName)
 		return err, ""
 	}
 	cmd, err := exec.Command("/bin/sh", fileName).Output()
 	if err != nil {
-		_ = os.Remove(fileName)
 		return err, ""
 	}
 	output := string(cmd)
