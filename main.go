@@ -37,7 +37,8 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 		resp := new(BookRequest)
 		_ = json.Unmarshal(body, resp)
 
-		err, output := RunScript("alice", "create-book", resp.Title, resp.Synopsis, resp.CreatedAt)
+		err, output := RunScript("alice", "create-book",
+			resp.BookId, resp.Title, resp.Synopsis, resp.CreatedAt)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -45,7 +46,6 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 	default:
 		rw.Write([]byte("Wrong Target"))
 	}
-
 }
 
 type TargetRequest struct {
@@ -53,9 +53,11 @@ type TargetRequest struct {
 }
 
 type BookRequest struct {
+	BookId    string `json:"bookId"`
 	Title     string `json:"title"`
 	Synopsis  string `json:"synopsis"`
 	CreatedAt string `json:"createdAt"`
+	Account   string `json:"accountName"`
 }
 
 func RunScript(from string, message string, arguments ...string) (error, string) {
